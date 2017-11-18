@@ -44,6 +44,9 @@ import com.android.inputmethod.latin.utils.RecapitalizeStatus;
 import com.android.inputmethod.latin.utils.ResourceUtils;
 import com.android.inputmethod.latin.utils.ScriptUtils;
 
+import android.hardware.display.DisplayManager;
+import android.view.Display;
+
 import javax.annotation.Nonnull;
 
 public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
@@ -77,6 +80,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public static void init(final LatinIME latinIme) {
+        Log.v("KeyboardSwitcher", "init " + latinIme);
         sInstance.initInternal(latinIme);
     }
 
@@ -98,9 +102,17 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     private boolean updateKeyboardThemeAndContextThemeWrapper(final Context context,
             final KeyboardTheme keyboardTheme) {
+        Log.v("KeyboardSwitcher", "updateKeyboardThemeAndContextThemeWrapper context="+context);
         if (mThemeContext == null || !keyboardTheme.equals(mKeyboardTheme)) {
             mKeyboardTheme = keyboardTheme;
-            mThemeContext = new ContextThemeWrapper(context, keyboardTheme.mStyleId);
+
+            // hack: create window on last display
+            DisplayManager dm = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+            final Display[] displays = dm.getDisplays();
+            Display display = displays[displays.length-1];
+
+            mThemeContext = new ContextThemeWrapper(
+                context.createDisplayContext(display), keyboardTheme.mStyleId);
             KeyboardLayoutSet.onKeyboardThemeChanged();
             return true;
         }
@@ -114,6 +126,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final Resources res = mThemeContext.getResources();
         final int keyboardWidth = ResourceUtils.getDefaultKeyboardWidth(res);
         final int keyboardHeight = ResourceUtils.getKeyboardHeight(res, settingsValues);
+        Log.v("KeyboardSwitcher", "loadKeyboard keyboardWidth="+keyboardWidth);
         builder.setKeyboardGeometry(keyboardWidth, keyboardHeight);
         builder.setSubtype(mRichImm.getCurrentSubtype());
         builder.setVoiceInputKeyEnabled(settingsValues.mShowsVoiceInputKey);
@@ -455,6 +468,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public View onCreateInputView(final boolean isHardwareAcceleratedDrawingEnabled) {
+        Log.v("KeyboardSwitcher", "onCreateInputView");
         if (mKeyboardView != null) {
             mKeyboardView.closing();
         }
